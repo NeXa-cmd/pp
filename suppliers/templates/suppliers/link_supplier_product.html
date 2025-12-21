@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - Supply Chain Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h3 class="mb-0">
+                    <i class="bi bi-link-45deg"></i> {{ title }}
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> 
+                    Create a relationship between a supplier and a product to indicate that the supplier provides this product.
+                </div>
+                
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.supplier_uid.id_for_label }}" class="form-label">
+                            Select Supplier <span class="text-danger">*</span>
+                        </label>
+                        {{ form.supplier_uid }}
+                        {% if form.supplier_uid.errors %}
+                            <div class="text-danger small mt-1">{{ form.supplier_uid.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.product_uid.id_for_label }}" class="form-label">
+                            Select Product <span class="text-danger">*</span>
+                        </label>
+                        {{ form.product_uid }}
+                        {% if form.product_uid.errors %}
+                            <div class="text-danger small mt-1">{{ form.product_uid.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <hr>
+                    
+                    <h5 class="mb-3">Optional Relationship Details</h5>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.unit_price.id_for_label }}" class="form-label">
+                                Unit Price ($)
+                            </label>
+                            {{ form.unit_price }}
+                            <small class="form-text text-muted">Price per unit of measure</small>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.lead_time_days.id_for_label }}" class="form-label">
+                                {{ form.lead_time_days.label }}
+                            </label>
+                            {{ form.lead_time_days }}
+                            <small class="form-text text-muted">Delivery time in days</small>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'supplier_list' %}" class="btn btn-secondary">
+                            <i class="bi bi-arrow-left"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-link-45deg"></i> Create Link
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
