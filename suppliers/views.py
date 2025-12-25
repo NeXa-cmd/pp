@@ -8,8 +8,8 @@ from django.http import Http404
 from neomodel import db
 from datetime import datetime
 
-from .models import Supplier, Product
-from .forms import SupplierForm, ProductForm, LinkSupplierProductForm
+from .models import Supplier, Product, Store
+from .forms import SupplierForm, ProductForm, LinkSupplierProductForm, StoreForm, StockAssignmentForm
 
 
 # ==================== SUPPLIER VIEWS ====================
@@ -273,4 +273,215 @@ def link_supplier_product(request):
     return render(request, 'suppliers/link_supplier_product.html', {
         'form': form,
         'title': 'Link Supplier to Product'
+    })
+
+
+# ==================== STORE VIEWS ====================
+
+def store_list(request):
+    """Display list of all stores."""
+    stores = Store.nodes.all()
+    return render(request, 'suppliers/store_list.html', {
+        'stores': stores
+    })
+
+
+def store_create(request):
+    """Create a new store."""
+    if request.method == 'POST':
+        form = StoreForm(request.POST)
+        if form.is_valid():
+            try:
+                # Create store node
+                store = Store(
+                    name=form.cleaned_data['name'],
+                    location=form.cleaned_data['location'],
+                    store_type=form.cleaned_data['store_type']
+                ).save()
+                
+                messages.success(request, f'Store "{store.name}" created successfully!')
+                return redirect('store_list')
+            except Exception as e:
+                messages.error(request, f'Error creating store: {str(e)}')
+    else:
+        form = StoreForm()
+    
+    return render(request, 'suppliers/store_form.html', {
+        'form': form,
+        'title': 'Create Store'
+    })
+
+
+def store_detail(request, uid):
+    """Display details of a specific store."""
+    try:
+        store = Store.nodes.get(uid=uid)
+        
+        # Get all products available at this store with their quantities
+        products_data = []
+        for product in store.has_products.all():
+            # Get relationship properties
+            rel = store.has_products.relationship(product)
+            products_data.append({
+                'product': product,
+                'quantity': rel.quantity,
+                'aisle': rel.aisle,
+                'last_updated': rel.last_updated
+            })
+        
+        return render(request, 'suppliers/store_detail.html', {
+            'store': store,
+            'products_data': products_data
+        })
+    except Store.DoesNotExist:
+        raise Http404('Store not found')
+
+
+def store_edit(request, uid):
+    """Edit an existing store."""
+    try:
+        store = Store.nodes.get(uid=uid)
+        
+        if request.method == 'POST':
+            form = StoreForm(request.POST)
+            if form.is_valid():
+                try:
+                    store.name = form.cleaned_data['name']
+                    store.location = form.cleaned_data['location']
+                    store.store_type = form.cleaned_data['store_type']
+                    store.updated_at = datetime.now()
+                    store.save()
+                    
+                    messages.success(request, f'Store "{store.name}" updated successfully!')
+                    return redirect('store_detail', uid=uid)
+                except Exception as e:
+                    messages.error(request, f'Error updating store: {str(e)}')
+        else:
+            # Prepopulate form with existing data
+            form = StoreForm(initial={
+                'name': store.name,
+                'location': store.location,
+                'store_type': store.store_type,
+            })
+        
+        return render(request, 'suppliers/store_form.html', {
+            'form': form,
+            'title': 'Edit Store',
+            'store': store
+        })
+    except Store.DoesNotExist:
+        raise Http404('Store not found')
+
+
+def store_delete(request, uid):
+    """Delete a store."""
+    try:
+        store = Store.nodes.get(uid=uid)
+        store_name = store.name
+        store.delete()
+        messages.success(request, f'Store "{store_name}" deleted successfully!')
+    except Store.DoesNotExist:
+        messages.error(request, 'Store not found')
+    except Exception as e:
+        messages.error(request, f'Error deleting store: {str(e)}')
+    
+    return redirect('store_list')
+
+
+# ==================== STOCK MANAGEMENT VIEWS ====================
+
+def stock_assignment(request):
+    """Assign a product to a store (create AVAILABLE_AT relationship)."""
+    if request.method == 'POST':
+        form = StockAssignmentForm(request.POST)
+        if form.is_valid():
+            product_uid = form.cleaned_data['product_uid']
+            store_uid = form.cleaned_data['store_uid']
+            quantity = form.cleaned_data['quantity']
+            aisle = form.cleaned_data['aisle']
+            
+            try:
+                product = Product.nodes.get(uid=product_uid)
+                store = Store.nodes.get(uid=store_uid)
+                
+                # Check if relationship already exists
+                if product.available_at.is_connected(store):
+                    # Update existing relationship
+                    rel = product.available_at.relationship(store)
+                    rel.quantity = quantity
+                    if aisle:
+                        rel.aisle = aisle
+                    rel.last_updated = datetime.now()
+                    rel.save()
+                    messages.success(request, f'Updated stock: "{product.name}" at "{store.name}" - Quantity: {quantity}')
+                else:
+                    # Create new relationship
+                    rel_props = {
+                        'quantity': quantity,
+                        'last_updated': datetime.now()
+                    }
+                    if aisle:
+                        rel_props['aisle'] = aisle
+                    
+                    product.available_at.connect(store, rel_props)
+                    messages.success(request, f'Successfully assigned "{product.name}" to "{store.name}" - Quantity: {quantity}')
+                
+                return redirect('store_detail', uid=store_uid)
+            except Product.DoesNotExist:
+                messages.error(request, 'Product not found')
+            except Store.DoesNotExist:
+                messages.error(request, 'Store not found')
+            except Exception as e:
+                messages.error(request, f'Error assigning stock: {str(e)}')
+    else:
+        form = StockAssignmentForm()
+    
+    return render(request, 'suppliers/stock_form.html', {
+        'form': form,
+        'title': 'Assign Product to Store'
+    })
+
+
+# ==================== ANALYTICS VIEWS ====================
+
+def dashboard(request):
+    """
+    Dashboard showing products with low stock (quantity < 10).
+    """
+    # Cypher query to find all products with quantity < 10 at any store
+    query = """
+    MATCH (product:Product)-[rel:AVAILABLE_AT]->(store:Store)
+    WHERE rel.quantity < 10
+    RETURN product, store, rel.quantity as quantity, rel.aisle as aisle
+    ORDER BY rel.quantity ASC
+    """
+    
+    results, meta = db.cypher_query(query)
+    
+    # Process results
+    low_stock_items = []
+    for row in results:
+        product_node = Product.inflate(row[0])
+        store_node = Store.inflate(row[1])
+        quantity = row[2]
+        aisle = row[3] if row[3] else 'N/A'
+        
+        low_stock_items.append({
+            'product': product_node,
+            'store': store_node,
+            'quantity': quantity,
+            'aisle': aisle
+        })
+    
+    # Get total counts for statistics
+    total_products = len(Product.nodes.all())
+    total_stores = len(Store.nodes.all())
+    total_suppliers = len(Supplier.nodes.all())
+    
+    return render(request, 'suppliers/dashboard.html', {
+        'low_stock_items': low_stock_items,
+        'total_products': total_products,
+        'total_stores': total_stores,
+        'total_suppliers': total_suppliers,
+        'low_stock_count': len(low_stock_items)
     })

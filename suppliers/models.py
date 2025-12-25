@@ -67,6 +67,16 @@ class Supplier(StructuredNode):
         app_label = 'suppliers'
 
 
+class AvailableAtRel(StructuredRel):
+    """
+    Relationship properties for AVAILABLE_AT relationship.
+    Represents product availability at a store with quantity and location.
+    """
+    quantity = IntegerProperty(default=0)
+    aisle = StringProperty()
+    last_updated = DateTimeProperty(default=datetime.now)
+
+
 class Product(StructuredNode):
     """
     Product node in Neo4j.
@@ -92,9 +102,39 @@ class Product(StructuredNode):
     
     # Relationships
     supplied_by = RelationshipFrom('Supplier', 'SUPPLIES', model=SuppliesRel)
+    available_at = RelationshipTo('Store', 'AVAILABLE_AT', model=AvailableAtRel)
     
     def __str__(self):
         return f"{self.name} ({self.sku})"
+    
+    class Meta:
+        app_label = 'suppliers'
+
+
+class Store(StructuredNode):
+    """
+    Store node in Neo4j.
+    
+    Properties:
+        uid: Unique identifier
+        name: Store name
+        location: Store address/location
+        store_type: Type of store (Retail, Warehouse, Distribution Center, etc.)
+        created_at: Timestamp of creation
+        updated_at: Timestamp of last update
+    """
+    uid = UniqueIdProperty()
+    name = StringProperty(unique_index=True, required=True)
+    location = StringProperty()
+    store_type = StringProperty(default='Retail')
+    created_at = DateTimeProperty(default=datetime.now)
+    updated_at = DateTimeProperty(default=datetime.now)
+    
+    # Relationships
+    has_products = RelationshipFrom('Product', 'AVAILABLE_AT', model=AvailableAtRel)
+    
+    def __str__(self):
+        return f"{self.name} ({self.location})"
     
     class Meta:
         app_label = 'suppliers'

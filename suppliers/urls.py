@@ -16,6 +16,19 @@ urlpatterns = [
     path('products/<str:uid>/edit/', views.product_edit, name='product_edit'),
     path('products/<str:uid>/delete/', views.product_delete, name='product_delete'),
     
+    # Store URLs
+    path('stores/', views.store_list, name='store_list'),
+    path('stores/create/', views.store_create, name='store_create'),
+    path('stores/<str:uid>/', views.store_detail, name='store_detail'),
+    path('stores/<str:uid>/edit/', views.store_edit, name='store_edit'),
+    path('stores/<str:uid>/delete/', views.store_delete, name='store_delete'),
+    
+    # Stock Management URLs
+    path('stock/assign/', views.stock_assignment, name='stock_assignment'),
+    
+    # Analytics URLs
+    path('analytics/dashboard/', views.dashboard, name='dashboard'),
+    
     # Relationship URLs (must come before <str:uid>/ to avoid conflicts)
     path('link/supplier-product/', views.link_supplier_product, name='link_supplier_product'),
     

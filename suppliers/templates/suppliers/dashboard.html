@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Supply Chain Tracker{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h2><i class="bi bi-graph-up"></i> Supply Chain Dashboard</h2>
+        <p class="text-muted">Overview of your supply chain with key metrics and low stock alerts.</p>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card shadow-sm border-primary">
+            <div class="card-body text-center">
+                <i class="bi bi-building display-4 text-primary"></i>
+                <h3 class="mt-2">{{ total_suppliers }}</h3>
+                <p class="text-muted mb-0">Suppliers</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card shadow-sm border-success">
+            <div class="card-body text-center">
+                <i class="bi bi-box-seam display-4 text-success"></i>
+                <h3 class="mt-2">{{ total_products }}</h3>
+                <p class="text-muted mb-0">Products</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card shadow-sm border-info">
+            <div class="card-body text-center">
+                <i class="bi bi-shop display-4 text-info"></i>
+                <h3 class="mt-2">{{ total_stores }}</h3>
+                <p class="text-muted mb-0">Stores</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card shadow-sm border-danger">
+            <div class="card-body text-center">
+                <i class="bi bi-exclamation-triangle display-4 text-danger"></i>
+                <h3 class="mt-2">{{ low_stock_count }}</h3>
+                <p class="text-muted mb-0">Low Stock Items</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Low Stock Alert Section -->
+<div class="row">
+    <div class="col">
+        <div class="card shadow">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-triangle"></i> Low Stock Alert (Quantity < 10)
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if low_stock_items %}
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-circle"></i> 
+                        <strong>Attention Required!</strong> {{ low_stock_count }} product(s) have critically low stock levels.
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover table-bordered">
+                            <thead class="table-danger">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Product</th>
+                                    <th>SKU</th>
+                                    <th>Store</th>
+                                    <th>Location</th>
+                                    <th>Quantity</th>
+                                    <th>Aisle</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in low_stock_items %}
+                                <tr {% if item.quantity == 0 %}class="table-danger"{% elif item.quantity < 5 %}class="table-warning"{% endif %}>
+                                    <td>{{ forloop.counter }}</td>
+                                    <td>
+                                        <a href="{% url 'product_detail' item.product.uid %}">
+                                            <strong>{{ item.product.name }}</strong>
+                                        </a>
+                                        <br>
+                                        <small class="text-muted">{{ item.product.category|default:"Uncategorized" }}</small>
+                                    </td>
+                                    <td><code>{{ item.product.sku }}</code></td>
+                                    <td>
+                                        <a href="{% url 'store_detail' item.store.uid %}">
+                                            {{ item.store.name }}
+                                        </a>
+                                    </td>
+                                    <td>{{ item.store.location|truncatewords:5|default:"N/A" }}</td>
+                                    <td>
+                                        <span class="badge {% if item.quantity == 0 %}bg-danger{% elif item.quantity < 5 %}bg-warning text-dark{% else %}bg-warning text-dark{% endif %} fs-6">
+                                            {{ item.quantity }}
+                                        </span>
+                                    </td>
+                                    <td>{{ item.aisle }}</td>
+                                    <td>
+                                        <a href="{% url 'stock_assignment' %}" class="btn btn-sm btn-success">
+                                            <i class="bi bi-box-arrow-in-down"></i> Restock
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle"></i> 
+                        <strong>All Good!</strong> No products with critically low stock levels. All inventory levels are healthy.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row mt-4">
+    <div class="col">
+        <div class="card shadow">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2">
+                    <a href="{% url 'stock_assignment' %}" class="btn btn-success">
+                        <i class="bi bi-box-arrow-in-down"></i> Assign Stock
+                    </a>
+                    <a href="{% url 'store_create' %}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Add Store
+                    </a>
+                    <a href="{% url 'product_create' %}" class="btn btn-info">
+                        <i class="bi bi-plus-circle"></i> Add Product
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

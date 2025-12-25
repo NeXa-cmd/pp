@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - Supply Chain Tracker{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="bi bi-box-arrow-in-down"></i> {{ title }}</h4>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">
+                    Assign a product to a store or update existing stock levels. 
+                    This creates or updates the AVAILABLE_AT relationship.
+                </p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.product_uid.id_for_label }}" class="form-label">
+                            Product <span class="text-danger">*</span>
+                        </label>
+                        {{ form.product_uid }}
+                        {% if form.product_uid.errors %}
+                            <div class="text-danger small">{{ form.product_uid.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.store_uid.id_for_label }}" class="form-label">
+                            Store <span class="text-danger">*</span>
+                        </label>
+                        {{ form.store_uid }}
+                        {% if form.store_uid.errors %}
+                            <div class="text-danger small">{{ form.store_uid.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.quantity.id_for_label }}" class="form-label">
+                            Quantity <span class="text-danger">*</span>
+                        </label>
+                        {{ form.quantity }}
+                        {% if form.quantity.errors %}
+                            <div class="text-danger small">{{ form.quantity.errors }}</div>
+                        {% endif %}
+                        <small class="text-muted">Number of units available at this store.</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.aisle.id_for_label }}" class="form-label">
+                            Aisle/Location
+                        </label>
+                        {{ form.aisle }}
+                        {% if form.aisle.errors %}
+                            <div class="text-danger small">{{ form.aisle.errors }}</div>
+                        {% endif %}
+                        <small class="text-muted">Optional: Specify where in the store this product is located.</small>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> 
+                        <strong>Note:</strong> If this product is already assigned to the selected store, 
+                        the quantity and location will be updated.
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'store_list' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-save"></i> Assign Stock
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

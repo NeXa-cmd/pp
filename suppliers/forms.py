@@ -3,7 +3,7 @@ Django forms for Suppliers and Products.
 """
 
 from django import forms
-from .models import Supplier, Product
+from .models import Supplier, Product, Store
 
 
 class SupplierForm(forms.Form):
@@ -146,3 +146,78 @@ class LinkSupplierProductForm(forms.Form):
         products = Product.nodes.all()
         product_choices = [(p.uid, f"{p.name} ({p.sku})") for p in products]
         self.fields['product_uid'].widget.choices = [('', '--- Select Product ---')] + product_choices
+
+
+class StoreForm(forms.Form):
+    """Form for creating and editing Stores."""
+    
+    name = forms.CharField(
+        max_length=200,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter store name'
+        })
+    )
+    location = forms.CharField(
+        required=False,
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Enter store location/address'
+        })
+    )
+    store_type = forms.ChoiceField(
+        choices=[
+            ('Retail', 'Retail'),
+            ('Warehouse', 'Warehouse'),
+            ('Distribution Center', 'Distribution Center'),
+            ('Outlet', 'Outlet'),
+            ('Flagship', 'Flagship'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Store Type'
+    )
+
+
+class StockAssignmentForm(forms.Form):
+    """Form for assigning a Product to a Store (creating AVAILABLE_AT relationship)."""
+    
+    product_uid = forms.CharField(
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Product'
+    )
+    store_uid = forms.CharField(
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        label='Store'
+    )
+    quantity = forms.IntegerField(
+        min_value=0,
+        initial=0,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter quantity'
+        })
+    )
+    aisle = forms.CharField(
+        max_length=50,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'e.g., A1, B3, Warehouse-Section-2'
+        }),
+        label='Aisle/Location'
+    )
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Populate product choices
+        products = Product.nodes.all()
+        product_choices = [(p.uid, f"{p.name} ({p.sku})") for p in products]
+        self.fields['product_uid'].widget.choices = [('', '--- Select Product ---')] + product_choices
+        
+        # Populate store choices
+        stores = Store.nodes.all()
+        store_choices = [(s.uid, f"{s.name} - {s.location}") for s in stores]
+        self.fields['store_uid'].widget.choices = [('', '--- Select Store ---')] + store_choices
